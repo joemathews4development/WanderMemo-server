@@ -25,6 +25,14 @@ app.get("/", (req, res, next) => {
   res.json("All good in here");
 });
 
+// 👇 Defines and applies route handlers
+const indexRouter = require("./routes/index.routes");
+app.use("/api", indexRouter);
+
+// ❗ Centralized error handling (must be placed after routes)
+const handleErrors = require("./errors")
+handleErrors(app);
+
 // ℹ️ Defines the server port (default: 5005)
 const PORT = process.env.PORT || 5005;
 
