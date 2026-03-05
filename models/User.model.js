@@ -39,11 +39,13 @@ const userSchema = new Schema(
       required: [true, 'Email is required.'],
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      select: false
     },
     password: {
       type: String,
-      required: [true, 'Password is required.']
+      required: [true, 'Password is required.'],
+      select: false
     },
     profileImage: {
         type: String,
