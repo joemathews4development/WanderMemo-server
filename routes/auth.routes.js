@@ -50,14 +50,14 @@ router.post("/login", async (req, res, next) => {
         res.status(400).json({errorMessage: "email and password are required"})
         return
     }
-
     try {
-        const foundUser = await User.findOne( { email: email } )
+        const foundUser = await User.findOne( { email: email } ).select("+password")
         if (!foundUser) {
             res.status(400).json({errorMessage: `There is no user with the email: "${email}". Please sign up first`})
             return
         }
         const isPasswordCorrect = await bcrypt.compare(password, foundUser.password)
+
         if (!isPasswordCorrect) {
             res.status(400).json({errorMessage: `The entered password does not match the email. Please try with the correct password`})
             return
@@ -70,6 +70,7 @@ router.post("/login", async (req, res, next) => {
             firstName: foundUser.firstName,
             lastName: foundUser.lastName
         }
+        console.log(payload)
         const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
             algorithm: "HS256",
             expiresIn: process.env.TOKEN_EXPIRES_IN
