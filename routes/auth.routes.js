@@ -73,7 +73,7 @@ router.post("/signup", async (req, res, next) => {
  * @throws {Error} If credentials are invalid or user not found
  */
 router.post("/login", async (req, res, next) => {
-    console.log(req.body)
+    
     const {email, password} = req.body
     if(!email || !password) {
         res.status(400).json({errorMessage: "email and password are required"})
@@ -86,7 +86,6 @@ router.post("/login", async (req, res, next) => {
             return
         }
         const isPasswordCorrect = await bcrypt.compare(password, foundUser.password)
-
         if (!isPasswordCorrect) {
             res.status(400).json({errorMessage: `The entered password does not match the email. Please try with the correct password`})
             return
@@ -158,6 +157,11 @@ router.patch("/changePassword", async (req, res, next) => {
         console.log(error)
         next(error)
     }
+})
+
+// GET "/api/auth/verify" => Validates the token on new users accessing the client
+router.get("/verify", verifyToken, (req, res) => {
+    res.status(200).json({payload: req.payload})
 })
 
 module.exports = router
