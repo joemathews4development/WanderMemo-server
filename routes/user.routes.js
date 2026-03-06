@@ -1,72 +1,120 @@
+/**
+ * @fileoverview User routes for the WanderMemo application.
+ * Handles user profile management, retrieval, and search functionality.
+ */
+
 // The user model
 const User = require("../models/User.model")
 
 // ℹ️ The main router for the app.
 const router = require("express").Router()
 
-router.patch("/", async (req, res, next) => {
-    try {
-        const allowedUpdates = ["firstName", "lastName", "profileImage"]
-        const updates = {}
-        allowedUpdates.forEach(field => {
-            if (req.body[field] !== undefined) {
-                updates[field] = req.body[field];
-            }
-        })
-        const loggedUserId = req.payload._id
-        const user = await User.findByIdAndUpdate(
-            loggedUserId,
-            {
-                firstName: updates.firstName,
-                lastName: updates.lastName,
-                profileImage: updates.profileImage
-            },
-            { returnDocument: "after" }
-        )
-        res.status(200).json(user)
-    } catch (error) {
-        console.log(error)
-        next(error)
-    }
-})
+const { verifyToken, verifyPremiumUser } = require("../middlewares/auth.middlewares")
 
-// Get
-router.get('/', async (req, res, next) => {
-  try {
-        const loggedUserId = req.payload._id
-        const user = await User.findById({
-            user: loggedUserId
-        })
-        res.status(200).json(user)
-    } catch (error) {
-        console.log(error)
-        next(error)
-    }
-});
-
-// Get
-router.get('/:userId', async (req, res, next) => {
-  try {
-        const user = await User.findById({
-            user: req.params.userId
-        })
-        .select("firstName lastName profileImage");
-        res.status(200).json(user)
-    } catch (error) {
-        console.log(error)
-        next(error)
-    }
-});
-
-// Get
-router.get('/', async (req, res, next) => {
-  try {
-        const query = {
-            firstName: req.query.search,
-            lastName: req.query.search,
+/**
+ * @route PATCH /profile
+ * @desc Update the authenticated user's profile information
+ * @access Private (requires authentication)
+ * @middleware verifyToken
+ * @param {Object} req.body - Fields to update: firstName, lastName, profileImage
+ * @returns {Object} The updated user object
+ * @throws {Error} If update fails
+ */
+router.patch(
+    "/profile",
+    verifyToken,
+    async (req, res, next) => {
+        try {
+            const allowedUpdates = ["firstName", "lastName", "profileImage"]
+            const updates = {}
+            allowedUpdates.forEach(field => {
+                if (req.body[field] !== undefined) {
+                    updates[field] = req.body[field];
+                }
+            })
+            const loggedUserId = req.payload._id
+            const user = await User.findByIdAndUpdate(
+                loggedUserId,
+                {
+                    firstName: updates.firstName,
+                    lastName: updates.lastName,
+                    profileImage: updates.profileImage
+                },
+                { returnDocument: "after" }
+            )
+            res.status(200).json(user)
+        } catch (error) {
+            console.log(error)
+            next(error)
         }
-        const users = await User.find(query)
-        .select("firstName lastName profileImage");
+    }
+)
+
+/**
+ * @route GET /profile
+ * @desc Get the authenticated user's profile
+ * @access Private (requires authentication)
+ * @middleware verifyToken
+ * @returns {Object} The user object including email
+ * @throws {Error} If retrieval fails
+ */
+router.get('/profile', verifyToken, async (req, res, next) => {
+    try {
+        console.log(req.payload)
+        const loggedUserId = req.payload._id
+        const user = await User
+            .findById(loggedUserId)
+            .select("+email")
+        res.status(200).json(user)
+    } catch (error) {
+        console.log(error)
+        next(error)
+    }
+});
+
+/**
+ * @route GET /:userId
+ * @desc Get a specific user's profile by ID
+ * @access Private (requires authentication and premium user)
+ * @middleware verifyToken, verifyPremiumUser
+ * @param {string} req.params.userId - The ID of the user to retrieve
+ * @returns {Object} The user object with firstName, lastName, profileImage
+ * @throws {Error} If retrieval fails
+ */
+router.get(
+    '/:userId',
+    verifyToken,
+    verifyPremiumUser,
+    async (req, res, next) => {
+        try {
+            const user = await User
+                .findById(req.params.userId)
+                .select("firstName lastName profileImage");
+            res.status(200).json(user)
+        } catch (error) {
+            console.log(error)
+            next(error)
+        }
+    }
+);
+
+/**
+ * @route GET /
+ * @desc Search users by firstName or lastName
+ * @access Public
+ * @param {string} req.query.search - The search term
+ * @returns {Array} Array of user objects matching the search
+ * @throws {Error} If search fails
+ */
+router.get('/', async (req, res, next) => {
+    try {
+        const users = await User.find({
+            $or: [
+                { firstName: { $regex: req.query.search, $options: "i" } },
+                { lastName: { $regex: req.query.search, $options: "i" } }
+            ]
+        })
+            .select("firstName lastName profileImage");
         res.status(200).json(users)
     } catch (error) {
         console.log(error)

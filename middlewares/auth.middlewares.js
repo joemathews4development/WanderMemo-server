@@ -56,6 +56,14 @@ function verifyPremiumUser(req, res, next) {
     }
 }
 
+function verifyPermission(req, res, next) {  
+    if (req.payload.role === "premium") {
+        next()
+    } else {
+        res.status(401).json({ errorMessage: "This is not a premium user. The user does not have permission to this route" })
+    }
+}
+
 module.exports = {
     verifyToken,
     verifyPremiumUser

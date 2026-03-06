@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Memory routes for the WanderMemo application.
+ * Handles memory creation, retrieval, updating, and deletion, including feed generation and cascading deletes.
+ */
+
 // The user model
 const Memory = require("../models/Memory.model")
 const Trip = require("../models/Trip.model")
@@ -12,6 +17,15 @@ const { verifyToken } = require("../middlewares/auth.middlewares")
 const loadResource = require("../middlewares/loadResource.middlewares")
 const checkOwnership = require("../middlewares/ownership.middlewares")
 
+/**
+ * @route POST /
+ * @desc Create a new memory for the authenticated user
+ * @access Private (requires authentication)
+ * @middleware verifyToken
+ * @param {Object} req.body - Memory details: title, caption, city, medias, type, date, cost, visibility, trip
+ * @returns {Object} The created memory object
+ * @throws {Error} If creation fails
+ */
 router.post("/", verifyToken, async (req, res, next) => {
     try {
         const loggedUserId = req.payload._id
@@ -34,6 +48,16 @@ router.post("/", verifyToken, async (req, res, next) => {
     }
 })
 
+/**
+ * @route PUT /:memoryId
+ * @desc Update an existing memory owned by the authenticated user
+ * @access Private (requires authentication and ownership)
+ * @middleware verifyToken, loadResource(Memory), checkOwnership
+ * @param {string} req.params.memoryId - The ID of the memory to update
+ * @param {Object} req.body - Fields to update in the memory
+ * @returns {Object} The updated memory object
+ * @throws {Error} If update fails or user doesn't own the memory
+ */
 router.put(
     "/:memoryId",
     verifyToken,
@@ -52,7 +76,14 @@ router.put(
     }
 )
 
-// Get
+/**
+ * @route GET /
+ * @desc Get the memory feed for the authenticated user (public memories and followers' memories)
+ * @access Private (requires authentication)
+ * @middleware verifyToken
+ * @returns {Array} Array of memory objects visible to the user
+ * @throws {Error} If retrieval fails
+ */
 router.get(
     '/',
     verifyToken,
@@ -89,7 +120,15 @@ router.get(
     }
 );
 
-// Get
+/**
+ * @route GET /:tripId/trip
+ * @desc Get all memories associated with a specific trip owned by the authenticated user
+ * @access Private (requires authentication and trip ownership)
+ * @middleware verifyToken, loadResource(Trip), checkOwnership
+ * @param {string} req.params.tripId - The ID of the trip
+ * @returns {Array} Array of memory objects for the trip
+ * @throws {Error} If retrieval fails or user doesn't own the trip
+ */
 router.get(
     '/:tripId/trip',
     verifyToken,
@@ -108,7 +147,15 @@ router.get(
     }
 );
 
-// Get
+/**
+ * @route GET /:memoryId
+ * @desc Get a specific memory owned by the authenticated user
+ * @access Private (requires authentication and ownership)
+ * @middleware verifyToken, loadResource(Memory), checkOwnership
+ * @param {string} req.params.memoryId - The ID of the memory to retrieve
+ * @returns {Object} The memory object
+ * @throws {Error} If retrieval fails or user doesn't own the memory
+ */
 router.get(
     '/:memoryId',
     verifyToken,
@@ -119,7 +166,15 @@ router.get(
     }
 );
 
-// Deletes a student
+/**
+ * @route DELETE /:memoryId
+ * @desc Delete a memory and all associated comments and reactions
+ * @access Private (requires authentication and ownership)
+ * @middleware verifyToken, loadResource(Memory), checkOwnership
+ * @param {string} req.params.memoryId - The ID of the memory to delete
+ * @returns {Object} The deleted memory object
+ * @throws {Error} If deletion fails or user doesn't own the memory
+ */
 router.delete(
     '/:memoryId',
     verifyToken,
