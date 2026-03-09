@@ -23,4 +23,7 @@ router.use("/comments", commentRouter)
 const reactionRouter = require("./reaction.routes")
 router.use("/reactions", reactionRouter)
 
+const uploadRoutes = require("./upload.routes");
+router.use("/upload", uploadRoutes);
+
 module.exports = router;

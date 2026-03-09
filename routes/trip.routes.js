@@ -9,6 +9,7 @@ const Follow = require("../models/Follow.model")
 const Memory = require("../models/Memory.model")
 const Comment = require("../models/Comment.model")
 const Reaction = require("../models/Reaction.model")
+const City = require("../models/City.model")
 
 // ℹ️ The main router for the app.
 const router = require("express").Router()
@@ -85,7 +86,7 @@ router.put(
  * @throws {Error} If retrieval fails
  */
 router.get(
-    '/:userId/user', 
+    '/:userId/user',
     verifyToken,
     async (req, res, next) => {
         try {
@@ -108,6 +109,20 @@ router.get(
             const trips = await Trip.find({
                 user: targetUserId,
                 visibility: { $in: visibilityFilter }
+            }).populate("cities").lean()
+            const tripIds = trips.map(trip => trip._id)
+            const memories = await Memory.find({
+                trip: { $in: tripIds }
+            }).lean()
+            const memoryMap = {}
+            for (const memory of memories) {
+                if (!memoryMap[memory.trip]) {
+                    memoryMap[memory.trip] = memory
+                }
+            }
+            trips.forEach(trip => {
+                const memory = memoryMap[trip._id];
+                trip.image = memory?.medias?.[0] || null;
             })
             res.status(200).json(trips)
         } catch (error) {
@@ -129,7 +144,7 @@ router.get(
 router.get(
     "/:tripId",
     verifyToken,
-    loadResource(Trip, "tripId", "trip"),
+    loadResource(Trip, "tripId", "trip", "cities"),
     checkOwnership("user", "trip"),
     async (req, res) => {
         res.status(200).json(req.trip)
@@ -151,21 +166,21 @@ router.delete(
     loadResource(Trip, "tripId", "trip"),
     checkOwnership("user", "trip"),
     async (req, res, next) => {
-    try {
-        const trip = req.trip;
-        const memories = await Memory.find({
-            trip: trip._id
-        })
-        const memoryIds = memories.map(m => m._id)
-        await Comment.deleteMany({ memory: { $in: memoryIds } })
-        await Reaction.deleteMany({ memory: { $in: memoryIds } })
-        await Memory.deleteMany({ _id: { $in: memoryIds } })
-        await trip.deleteOne();
-        res.status(200).json(trip);
-    } catch (error) {
-        console.log('error');
-        next(error);
-    }
-});
+        try {
+            const trip = req.trip;
+            const memories = await Memory.find({
+                trip: trip._id
+            })
+            const memoryIds = memories.map(m => m._id)
+            await Comment.deleteMany({ memory: { $in: memoryIds } })
+            await Reaction.deleteMany({ memory: { $in: memoryIds } })
+            await Memory.deleteMany({ _id: { $in: memoryIds } })
+            await trip.deleteOne();
+            res.status(200).json(trip);
+        } catch (error) {
+            console.log('error');
+            next(error);
+        }
+    });
 
 module.exports = router

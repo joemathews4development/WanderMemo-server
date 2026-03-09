@@ -35,7 +35,8 @@ const tripSchema = new Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: [true, "User is mandatory"]
-        }
+        },
+        image: String
     },
     {
         timestamps: true

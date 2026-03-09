@@ -139,7 +139,46 @@ router.get(
             const memories = await Memory.find({
                 trip: req.params.tripId
             })
-            res.status(200).json(memories)
+            const memoryIds = memories.map(m => m._id);
+            const [reactions, comments] = await Promise.all([
+                Reaction.find({ memory: { $in: memoryIds } }).lean(),
+                Comment.find({ memory: { $in: memoryIds } }).lean()
+            ]);
+            const reactionCounts = await Reaction.aggregate([
+                { $match: { memory: { $in: memoryIds } } },
+                {
+                    $group: {
+                        _id: { memory: "$memory", emoji: "$emoji" },
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+            const commentCounts = await Comment.aggregate([
+                { $match: { memory: { $in: memoryIds } } },
+                {
+                    $group: {
+                        _id: "$memory",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+            const reactionsByMemory = {}
+            const commentsByMemory = {}
+            reactionCounts.forEach(r => {
+                const memoryId = r._id.memory
+                const emoji = r._id.emoji
+                if (!reactionsByMemory[memoryId]) reactionsByMemory[memoryId] = {}
+                reactionsByMemory[memoryId][emoji] = r.count
+            })
+            commentCounts.forEach(c => {
+                commentsByMemory[c._id] = c.count
+            })
+            const memoriesWithStats = memories.map(m => ({
+                ...m,
+                reactions: reactionsByMemory[m._id] || {},
+                commentCount: commentsByMemory[m._id] || 0
+            }))
+            res.status(200).json(memoriesWithStats)
         } catch (error) {
             console.log(error)
             next(error)
