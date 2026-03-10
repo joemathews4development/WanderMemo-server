@@ -6,6 +6,8 @@
 // The user model
 const User = require("../models/User.model")
 
+const Follow = require("../models/Follow.model")
+
 // ℹ️ The main router for the app.
 const router = require("express").Router()
 
@@ -106,16 +108,34 @@ router.get(
  * @returns {Array} Array of user objects matching the search
  * @throws {Error} If search fails
  */
-router.get('/', async (req, res, next) => {
+router.get('/', verifyToken, async (req, res, next) => {
     try {
-        const users = await User.find({
-            $or: [
-                { firstName: { $regex: req.query.search, $options: "i" } },
-                { lastName: { $regex: req.query.search, $options: "i" } }
-            ]
+        const viewerId = req.payload._id
+        const users = await User
+            .find({
+                $or: [
+                    { firstName: { $regex: req.query.search, $options: "i" } },
+                    { lastName: { $regex: req.query.search, $options: "i" } }
+                ]
+            })
+            .select("firstName lastName profileImage")
+        const userIds = users.map(u => u._id)
+        // 2️⃣ Get current user's followings
+        const follows = await Follow.find({
+            follower: viewerId,
+            following: { $in: userIds }
+        }).select("following status")
+        // map follow records for fast lookup
+        const followMap = new Map()
+        follows.forEach(f => {
+            followMap.set(f.following.toString(), f.status)
         })
-            .select("firstName lastName profileImage");
-        res.status(200).json(users)
+        // 3️⃣ attach status to users
+        const result = users.map(user => ({
+            ...user.toObject(),
+            status: followMap.get(user._id.toString()) || "Not_requested"
+        }))
+        res.status(200).json(result)
     } catch (error) {
         console.log(error)
         next(error)

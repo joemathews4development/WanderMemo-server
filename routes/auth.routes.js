@@ -80,7 +80,7 @@ router.post("/login", async (req, res, next) => {
         return
     }
     try {
-        const foundUser = await User.findOne( { email: email } ).select("+password")
+        const foundUser = await User.findOne( { email: email } ).select("+password +email")
         if (!foundUser) {
             res.status(400).json({errorMessage: `There is no user with the email: "${email}". Please sign up first`})
             return

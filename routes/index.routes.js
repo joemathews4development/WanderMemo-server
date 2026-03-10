@@ -24,6 +24,9 @@ const reactionRouter = require("./reaction.routes")
 router.use("/reactions", reactionRouter)
 
 const uploadRoutes = require("./upload.routes");
-router.use("/upload", uploadRoutes);
+router.use("/upload", uploadRoutes)
+
+const cityRoutes = require("./city.routes");
+router.use("/cities", cityRoutes);
 
 module.exports = router;

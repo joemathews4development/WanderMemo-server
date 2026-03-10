@@ -29,6 +29,7 @@ const checkOwnership = require("../middlewares/ownership.middlewares")
 router.post("/", verifyToken, async (req, res, next) => {
     try {
         const loggedUserId = req.payload._id
+        console.log(req.body)
         const newMemory = await Memory.create({
             title: req.body.title,
             caption: req.body.caption,
@@ -90,6 +91,8 @@ router.get(
     async (req, res, next) => {
         try {
             const viewerId = req.payload._id
+            const page = parseInt(req.query.page) || 0
+            const limit = 20
             const follows = await Follow
                 .find({
                     follower: viewerId,
@@ -112,6 +115,12 @@ router.get(
                     }
                 ]
             })
+            .populate("user", "firstName lastName profileImage")
+            .populate("city", "city country")
+            .select("+updatedAt")
+            .sort({ updatedAt: -1 }) 
+            .skip(page * limit)
+            .limit(limit)
             res.status(200).json(memories)
         } catch (error) {
             console.log(error)

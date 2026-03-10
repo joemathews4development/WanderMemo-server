@@ -15,8 +15,8 @@ const memorySchema = new Schema(
         type: {
             type: String,
             enum: [
-                "Memory", "Tip", "Family", "Review",
-                "Food", "Stay", "Other"
+                "Memory", "Activity", "Tip", "Family", "Review",
+                "Food", "Sightseeing", "Stay", "Nature", "Other"
             ]
         },
         date: Date,

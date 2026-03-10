@@ -1,14 +1,16 @@
 // The user model
-const Trip = require("../models/Trip.model")
+const { verifyToken } = require("../middlewares/auth.middlewares")
+const Follow = require("../models/Follow.model")
 
 // ℹ️ The main router for the app.
 const router = require("express").Router()
 
-router.post("/request", async (req, res, next) => {
+router.post("/request", verifyToken, async (req, res, next) => {
     try {
+        const loggedInUser = req.payload._id
         const newFollow = await Follow.create({
             status: req.body.status,
-            follower: req.body.follower,
+            follower: loggedInUser,
             following: req.body.following
         })
         res.status(201).json(newFollow)
@@ -59,8 +61,6 @@ router.get('/following/:userId', async (req, res, next) => {
         next(error)
     }
 });
-
-
 
 // Get
 router.get('/', async (req, res, next) => {
