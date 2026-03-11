@@ -145,9 +145,11 @@ router.get(
     checkOwnership("user", "trip"),
     async (req, res, next) => {
         try {
-            const memories = await Memory.find({
-                trip: req.params.tripId
-            })
+            const memories = await Memory
+                .find({
+                    trip: req.params.tripId
+                })
+                .populate("city")
             const memoryIds = memories.map(m => m._id);
             const [reactions, comments] = await Promise.all([
                 Reaction.find({ memory: { $in: memoryIds } }).lean(),
