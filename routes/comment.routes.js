@@ -1,5 +1,7 @@
 // The user model
 const { verifyToken } = require("../middlewares/auth.middlewares")
+const loadResource = require("../middlewares/loadResource.middlewares")
+const checkOwnership = require("../middlewares/ownership.middlewares")
 const Comment = require("../models/Comment.model")
 
 // ℹ️ The main router for the app.
@@ -49,11 +51,17 @@ router.get('/:memoryId', async (req, res, next) => {
     }
 });
 
-// Deletes a student
-router.delete('/:commentId', async (req, res) => {
+// Deletes a comment
+router.delete(
+    '/:commentId',  
+    verifyToken,
+    loadResource(Comment, "commentId", "comment"),
+    checkOwnership("user", "comment"),
+    async (req, res) => {
     try {
-        const comment = await Comment.findByIdAndDelete(req.params.commentId);
-        res.status(200).json(comment);
+        const comment = req.comment
+        await comment.deleteOne()
+        res.status(200).json(comment)
     } catch (error) {
         console.log('error');
         next(error);
