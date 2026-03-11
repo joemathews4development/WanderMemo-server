@@ -115,13 +115,52 @@ router.get(
                     }
                 ]
             })
-            .populate("user", "firstName lastName profileImage")
-            .populate("city", "city country")
-            .select("+updatedAt")
-            .sort({ updatedAt: -1 }) 
-            .skip(page * limit)
-            .limit(limit)
-            res.status(200).json(memories)
+                .populate("user", "firstName lastName profileImage")
+                .populate("city", "city country")
+                .select("+updatedAt")
+                .sort({ updatedAt: -1 })
+                .skip(page * limit)
+                .limit(limit)
+                .lean()
+            const memoryIds = memories.map(m => m._id)
+            const reactionCounts = await Reaction.aggregate([
+                { $match: { memory: { $in: memoryIds } } },
+                {
+                    $group: {
+                        _id: { memory: "$memory", emoji: "$emoji" },
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+            const commentCounts = await Comment.aggregate([
+                { $match: { memory: { $in: memoryIds } } },
+                {
+                    $group: {
+                        _id: "$memory",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+            const reactionsByMemory = {}
+            const commentsByMemory = {}
+            reactionCounts.forEach(r => {
+                const memoryId = r._id.memory
+                const emoji = r._id.emoji
+                if (!reactionsByMemory[memoryId]) reactionsByMemory[memoryId] = {}
+                reactionsByMemory[memoryId][emoji] = r.count
+            })
+            console.log(reactionsByMemory)
+            commentCounts.forEach(c => {
+                commentsByMemory[c._id] = c.count
+            })
+            console.log(commentsByMemory)
+            const memoriesWithStats = memories.map(m => ({
+                ...m,
+                reactions: reactionsByMemory[m._id] || {},
+                commentCount: commentsByMemory[m._id] || 0
+            }))
+            console.log(memoriesWithStats)
+            res.status(200).json(memoriesWithStats)
         } catch (error) {
             console.log(error)
             next(error)
@@ -209,10 +248,45 @@ router.get(
 router.get(
     '/:memoryId',
     verifyToken,
-    loadResource(Memory, "memoryId", "memory"),
-    checkOwnership("user", "memory"),
+    // checkOwnership("user", "memory"),
     async (req, res, next) => {
-        res.status(200).json(req.memory)
+        try {
+            const memory = await Memory
+                .findById(req.params.memoryId)
+                .populate("user", "firstName lastName profileImage")
+                .populate("city", "city country")
+                .select("+updatedAt")
+                .lean()
+            const reactionCounts = await Reaction.aggregate([
+                { $match: { memory: memory._id } },
+                {
+                    $group: {
+                        _id: { memory: "$memory", emoji: "$emoji" },
+                        count: { $sum: 1 }
+                    }
+                }
+            ])
+            const commentCounts = await Comment.aggregate([
+                { $match: { memory: memory._id } },
+                {
+                    $group: {
+                        _id: "$memory",
+                        count: { $sum: 1 }
+                    }
+                }
+            ])
+            const reactions = {};
+            reactionCounts.forEach(r => {
+                reactions[r._id.emoji] = r.count;
+            })
+            const commentCount = commentCounts[0]?.count || 0
+            memory.reactions = reactions
+            memory.commentCount = commentCount
+            res.status(200).json(memory)
+        } catch (error) {
+            console.log(error)
+            next(error)
+        }
     }
 );
 

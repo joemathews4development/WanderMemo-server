@@ -1,16 +1,19 @@
 // The user model
+const { verifyToken } = require("../middlewares/auth.middlewares")
 const Reaction = require("../models/Reaction.model")
 
 // ℹ️ The main router for the app.
 const router = require("express").Router()
 
-router.post("/", async (req, res, next) => {
+router.post("/memories/:memoryId", verifyToken, async (req, res, next) => {
     try {
-        const newReaction = await Reaction.create({
-            emoji: req.body.emoji,
-            user: req.body.user,
-            memory: req.body.memory
-        })
+        const loggedUser = req.payload._id
+        const memory =req.params.memoryId
+        const newReaction = await Reaction.findOneAndUpdate(
+            { user: loggedUser, memory: memory },
+            { emoji: req.body.emoji },
+            { upsert: true, new: true }
+        )
         res.status(201).json(newReaction)
     } catch (error) {
         console.log(error)

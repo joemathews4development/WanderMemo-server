@@ -5,7 +5,7 @@ const reactionSchema = new Schema(
         emoji: {
             type: String,
             required: [true, "Reaction is mandatory"],
-            enum: ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏", "🥳", "😎"]
+            enum: ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥"]
         },
         user: {
             type: mongoose.Schema.Types.ObjectId,
@@ -19,6 +19,10 @@ const reactionSchema = new Schema(
     {
         timestamps: true
     }
+)
+reactionSchema.index(
+  { user: 1, memory: 1 },
+  { unique: true }
 )
 
 const Reaction = model("Reaction", reactionSchema)

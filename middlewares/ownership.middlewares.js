@@ -3,7 +3,7 @@ function checkOwnership(ownerField, resourceKey) {
     const resource = req[resourceKey];
     if (resource[ownerField].toString() !== req.payload._id.toString()) {
       return res.status(403).json({
-        message: "You do not have permission for this action"
+        errorMessage: "You do not have permission for this action"
       });
     }
     next();

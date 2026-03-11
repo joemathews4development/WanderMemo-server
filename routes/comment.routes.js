@@ -1,15 +1,18 @@
 // The user model
+const { verifyToken } = require("../middlewares/auth.middlewares")
 const Comment = require("../models/Comment.model")
 
 // ℹ️ The main router for the app.
 const router = require("express").Router()
 
-router.post("/", async (req, res, next) => {
+router.post("/memories/:memoryId", verifyToken, async (req, res, next) => {
     try {
+        const loggedUser = req.payload._id
+        const memory =req.params.memoryId
         const newComment = await Comment.create({
             content: req.body.content,
-            user: req.body.user,
-            memory: req.body.memory
+            user: loggedUser,
+            memory: memory
         })
         res.status(201).json(newComment)
     } catch (error) {
@@ -38,6 +41,7 @@ router.get('/:memoryId', async (req, res, next) => {
         const comments = await Comment.find({
             memory: req.params.memoryId
         })
+        .populate("user")
         res.status(200).json(comments)
     } catch (error) {
         console.log(error)
