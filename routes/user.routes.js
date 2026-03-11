@@ -44,7 +44,15 @@ router.patch(
                 },
                 { returnDocument: "after" }
             )
-            res.status(200).json(user)
+            const payload = {
+                _id: user._id,
+                email: user.email,
+                // If we are having roles, we can add that here
+                role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName
+            }
+            res.status(200).json(payload)
         } catch (error) {
             console.log(error)
             next(error)

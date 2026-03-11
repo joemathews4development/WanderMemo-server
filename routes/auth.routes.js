@@ -31,20 +31,20 @@ const { verifyToken } = require("../middlewares/auth.middlewares")
  */
 router.post("/signup", async (req, res, next) => {
     console.log(req.body)
-    const {firstName, lastName, email, password, profileImage, role} = req.body
-    if(!firstName || !lastName || !email || !password) {
+    const { firstName, lastName, email, password, profileImage, role } = req.body
+    if (!firstName || !lastName || !email || !password) {
         res.status(400).json({ errorMessage: "firstName, lastName, email and password are mandatory" })
         return
     }
     const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/gm
     if (!passwordRegex.test(password)) {
-        res.status(400).json({errorMessage: "Password must follow this pattern (min 8 characters, max 20 characters, include lowercase, include uppercase and include number)"})
+        res.status(400).json({ errorMessage: "Password must follow this pattern (min 8 characters, max 20 characters, include lowercase, include uppercase and include number)" })
         return
     }
     try {
-        const foundUser = await User.findOne( { email: email } )
+        const foundUser = await User.findOne({ email: email })
         if (foundUser) {
-            res.status(400).json({errorMessage: `There exists a user with the email: "${email}". Please try with a different email`})
+            res.status(400).json({ errorMessage: `There exists a user with the email: "${email}". Please try with a different email` })
             return
         }
         const hashedPassword = await bcrypt.hash(password, 12)
@@ -73,21 +73,21 @@ router.post("/signup", async (req, res, next) => {
  * @throws {Error} If credentials are invalid or user not found
  */
 router.post("/login", async (req, res, next) => {
-    
-    const {email, password} = req.body
-    if(!email || !password) {
-        res.status(400).json({errorMessage: "email and password are required"})
+
+    const { email, password } = req.body
+    if (!email || !password) {
+        res.status(400).json({ errorMessage: "email and password are required" })
         return
     }
     try {
-        const foundUser = await User.findOne( { email: email } ).select("+password +email")
+        const foundUser = await User.findOne({ email: email }).select("+password +email")
         if (!foundUser) {
-            res.status(400).json({errorMessage: `There is no user with the email: "${email}". Please sign up first`})
+            res.status(400).json({ errorMessage: `There is no user with the email: "${email}". Please sign up first` })
             return
         }
         const isPasswordCorrect = await bcrypt.compare(password, foundUser.password)
         if (!isPasswordCorrect) {
-            res.status(400).json({errorMessage: `The entered password does not match the email. Please try with the correct password`})
+            res.status(400).json({ errorMessage: `The entered password does not match the email. Please try with the correct password` })
             return
         }
         const payload = {
@@ -123,9 +123,28 @@ router.post("/login", async (req, res, next) => {
 router.patch("/changeEmail", verifyToken, async (req, res, next) => {
     try {
         const loggedUserId = req.payload._id
+        const { newEmail } = req.body
+        if (!newEmail) {
+            res.status(400).json({ errorMessage: "email is mandatory" })
+            return
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if(!emailRegex.test(newEmail)) {
+            res.status(400).json({ errorMessage: "invalid email format" })
+            return
+        }
+        const foundUser = await User.findOne({ _id: loggedUserId }).select("+email")
+        if (!foundUser) {
+            res.status(400).json({ errorMessage: `There is no such user". Please sign up first` })
+            return
+        }
+        if (newEmail === foundUser.email) {
+            res.status(400).json({ errorMessage: `The entered new email is same as the old one. Do you want to try a new one?` })
+            return
+        }
         await User.findByIdAndUpdate(
             loggedUserId,
-            { email: req.body.newEmail }
+            { email: newEmail }
         )
         res.status(200).json({ message: "new email set successfully." })
     } catch (error) {
@@ -145,12 +164,38 @@ router.patch("/changeEmail", verifyToken, async (req, res, next) => {
  * @returns {Object} Success message
  * @throws {Error} If update fails
  */
-router.patch("/changePassword", async (req, res, next) => {
+router.patch("/changePassword", verifyToken, async (req, res, next) => {
     try {
         const loggedUserId = req.payload._id
+        const { oldPassword, newPassword } = req.body
+        if (!oldPassword || !newPassword) {
+            res.status(400).json({ errorMessage: "oldPassword and newPassword are mandatory" })
+            return
+        }
+        const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/gm
+        if (!passwordRegex.test(newPassword)) {
+            res.status(400).json({ errorMessage: "Password must follow this pattern (min 8 characters, max 20 characters, include lowercase, include uppercase and include number)" })
+            return
+        }
+        const foundUser = await User.findOne({ _id: loggedUserId }).select("+password")
+        if (!foundUser) {
+            res.status(400).json({ errorMessage: `There is no such user". Please sign up first` })
+            return
+        }
+        const isPasswordCorrect = await bcrypt.compare(oldPassword, foundUser.password)
+        if (!isPasswordCorrect) {
+            res.status(400).json({ errorMessage: `The entered current password does not match the one in DB. Please try with the correct password` })
+            return
+        }
+        const isPasswordSame = await bcrypt.compare(newPassword, foundUser.password)
+        if (isPasswordSame) {
+            res.status(400).json({ errorMessage: `The new password is same as old one. Please try with a different password` })
+            return
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 12)
         await User.findByIdAndUpdate(
             loggedUserId,
-            { password: req.body.newPassword }
+            { password: hashedPassword }
         )
         res.status(200).json({ message: "new password set successfully." })
     } catch (error) {
@@ -161,7 +206,7 @@ router.patch("/changePassword", async (req, res, next) => {
 
 // GET "/api/auth/verify" => Validates the token on new users accessing the client
 router.get("/verify", verifyToken, (req, res) => {
-    res.status(200).json({payload: req.payload})
+    res.status(200).json({ payload: req.payload })
 })
 
 module.exports = router
