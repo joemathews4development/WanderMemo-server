@@ -6,8 +6,9 @@ const router = require("express").Router()
 
 router.get('/', async (req, res, next) => {
     try {
+        /// `^${req.query.search}` makes the search -starts with, otherwise, it will be anywhere in the name
         const cities = await City.find({
-            city: { $regex: req.query.search, $options: "i" }
+            city: { $regex: `^${req.query.search}`, $options: "i" }
         })
         res.status(200).json(cities)
     } catch (error) {
