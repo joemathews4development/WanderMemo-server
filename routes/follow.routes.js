@@ -1,5 +1,7 @@
 // The user model
 const { verifyToken } = require("../middlewares/auth.middlewares")
+const loadResource = require("../middlewares/loadResource.middlewares")
+const checkOwnership = require("../middlewares/ownership.middlewares")
 const Follow = require("../models/Follow.model")
 
 // ℹ️ The main router for the app.
@@ -20,19 +22,23 @@ router.post("/request", verifyToken, async (req, res, next) => {
     }
 })
 
-router.patch("/:followId", async (req, res, next) => {
-    try {
-        const follow = await Follow.findByIdAndUpdate(
-            req.params.followId,
-            { status: req.body.status },
-            { returnDocument: "after" }
-        )
-        res.status(200).json(follow)
-    } catch (error) {
-        console.log(error)
-        next(error)
+router.patch(
+    "/:followId", 
+    verifyToken, 
+    loadResource(Follow, "followId", "follow"), 
+    checkOwnership("following", "follow"),
+    async (req, res, next) => {
+        try {
+            const follow = req.follow
+            Object.assign(follow, req.body)
+            await follow.save()
+            res.status(200).json(follow)
+        } catch (error) {
+            console.log(error)
+            next(error)
+        }
     }
-})
+)
 
 // Get
 router.get('/followers/:userId', async (req, res, next) => {
@@ -63,15 +69,18 @@ router.get('/following/:userId', async (req, res, next) => {
 });
 
 // Get
-router.get('/', async (req, res, next) => {
+router.get('/', verifyToken, async (req, res, next) => {
   try {
+    console.log("over here")
         const loggedUserId = req.payload._id
         const query = {
-            followingId: loggedUserId,
+            following: loggedUserId,
             status: req.query.status
         }
+        console.log(loggedUserId, req.query.status)
         const followRequests = await Follow.find(query)
         .populate("follower")
+        console.log("Follow requests:", followRequests)
         res.status(200).json(followRequests)
     } catch (error) {
         console.log(error)

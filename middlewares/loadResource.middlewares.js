@@ -15,7 +15,7 @@ function loadResource(Model, paramName, reqKey, populate = null) {
       const resource = await query;
       if (!resource) {
         return res.status(404).json({
-          message: `${Model.modelName} not found`
+          errorMessage: `${Model.modelName} not found`
         });
       }
       req[reqKey] = resource;
