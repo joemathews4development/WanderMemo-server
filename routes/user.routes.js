@@ -122,6 +122,7 @@ router.get('/', verifyToken, async (req, res, next) => {
         const viewerId = req.payload._id
         const users = await User
             .find({
+                _id: { $ne: viewerId },
                 $or: [
                     { firstName: { $regex: req.query.search, $options: "i" } },
                     { lastName: { $regex: req.query.search, $options: "i" } }

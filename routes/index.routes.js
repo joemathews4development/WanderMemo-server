@@ -32,4 +32,7 @@ router.use("/cities", cityRoutes);
 const tripPlannerRoutes = require("./tripPlanner.routes");
 router.use("/trip-planner", tripPlannerRoutes);
 
+const paymentRoutes = require("./payment.routes")
+router.use("/payment", paymentRoutes)
+
 module.exports = router;
