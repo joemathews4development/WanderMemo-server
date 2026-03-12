@@ -29,4 +29,7 @@ router.use("/upload", uploadRoutes)
 const cityRoutes = require("./city.routes");
 router.use("/cities", cityRoutes);
 
+const tripPlannerRoutes = require("./tripPlanner.routes");
+router.use("/trip-planner", tripPlannerRoutes);
+
 module.exports = router;
