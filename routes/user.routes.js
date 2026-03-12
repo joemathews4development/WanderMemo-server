@@ -50,7 +50,8 @@ router.patch(
                 // If we are having roles, we can add that here
                 role: user.role,
                 firstName: user.firstName,
-                lastName: user.lastName
+                lastName: user.lastName,
+                profileImage: user.profileImage
             }
             res.status(200).json(payload)
         } catch (error) {

@@ -96,7 +96,8 @@ router.post("/login", async (req, res, next) => {
             // If we are having roles, we can add that here
             role: foundUser.role,
             firstName: foundUser.firstName,
-            lastName: foundUser.lastName
+            lastName: foundUser.lastName,
+            profileImage: foundUser.profileImage
         }
         console.log(payload)
         const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
