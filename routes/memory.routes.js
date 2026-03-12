@@ -189,6 +189,7 @@ router.get(
                     trip: req.params.tripId
                 })
                 .populate("city")
+                .sort({ date: -1 })
             const memoryIds = memories.map(m => m._id);
             const [reactions, comments] = await Promise.all([
                 Reaction.find({ memory: { $in: memoryIds } }).lean(),
