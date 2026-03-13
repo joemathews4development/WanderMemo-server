@@ -333,11 +333,11 @@ AI tools were used as development assistance, while the final implementation and
 
 ### Repository (Client)
 
-Frontend application
+[Frontend application](https://github.com/joemathews4development/WanderMemo-client)
 
 ### Repository (Server)
 
-Backend API
+[Backend API](https://github.com/joemathews4development/WanderMemo-server)
 
 ---
 
