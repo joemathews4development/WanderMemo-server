@@ -113,16 +113,28 @@ router.get(
             const tripIds = trips.map(trip => trip._id)
             const memories = await Memory.find({
                 trip: { $in: tripIds }
-            }).lean()
+            }).populate("city").lean()
             const memoryMap = {}
             for (const memory of memories) {
                 if (!memoryMap[memory.trip]) {
-                    memoryMap[memory.trip] = memory
+                    memoryMap[memory.trip] = {
+                        image: memory.medias?.[0] || null,
+                        cities: new Set()
+                    }
+                }
+                if (memory.city) {
+                    memoryMap[memory.trip].cities.add(memory.city)
                 }
             }
             trips.forEach(trip => {
-                const memory = memoryMap[trip._id];
-                trip.image = memory?.medias?.[0] || null;
+                const memory = memoryMap[trip._id]
+                if (memory) {
+                    trip.image = memory.image
+                    trip.cities = Array.from(memory.cities)
+                } else {
+                    trip.image = null
+                    trip.cities = []
+                }
             })
             res.status(200).json(trips)
         } catch (error) {
@@ -146,8 +158,16 @@ router.get(
     verifyToken,
     loadResource(Trip, "tripId", "trip", "cities"),
     checkOwnership("user", "trip"),
-    async (req, res) => {
-        res.status(200).json(req.trip)
+    async (req, res, next) => {
+        try {
+            const trip = await Trip.findById(req.params.tripId).lean()
+            const memories = await Memory.find( { trip: trip._id } ).populate("city").lean()
+            trip.cities = [...new Set(memories.map(m => m.city).filter(Boolean))]
+            res.status(200).json(trip)
+        } catch (error) {
+            console.log(error)
+            next(error)
+        }
     }
 );
 
